@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 設定パネル: モバイルでボトムシート、PCでサイドバー */
+.settings-panel {
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.settings-panel.open {
+  transform: translateY(0);
+}
+
+@media (min-width: 768px) {
+  .settings-panel {
+    transform: translateX(100%);
+  }
+  .settings-panel.open {
+    transform: translateX(0);
+  }
+}
+
+/* スマホでズームされないよう 16px 以上を保証 */
+input, textarea, select {
+  font-size: 16px;
+}
