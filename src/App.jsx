@@ -4,7 +4,7 @@ import KeywordInput from './components/KeywordInput'
 import ThemeCards from './components/ThemeCards'
 import ArticleOutput from './components/ArticleOutput'
 import useSettings from './hooks/useSettings'
-import { generateThemes, generateArticle, generateImagePrompt } from './lib/anthropic'
+import { generateThemes, generateArticle, generateTitle, generateImagePrompt } from './lib/anthropic'
 import { generateImages } from './lib/fal'
 
 export default function App() {
@@ -27,11 +27,14 @@ export default function App() {
   const [customWordCount, setCustomWordCount] = useState(500)
   const [isCustom, setIsCustom] = useState(false)
   // articleText: テキストエリアに表示するテキスト（生成後はユーザーが編集可能）
+  const [articleTitle, setArticleTitle] = useState('')
   const [articleText, setArticleText] = useState('')
   const [articleLoading, setArticleLoading] = useState(false)
+  const [titleLoading, setTitleLoading] = useState(false)
   const [articleError, setArticleError] = useState('')
 
   // 画像生成
+  const [imageKeywords, setImageKeywords] = useState('')
   const [imageUrls, setImageUrls] = useState([])
   const [imageLoading, setImageLoading] = useState(false)
   const [imageError, setImageError] = useState('')
@@ -66,6 +69,7 @@ export default function App() {
     setThemes([])
     setSelectedTheme(null)
     setStep3Visible(false)
+    setArticleTitle('')
     setArticleText('')
     setImageUrls([])
     try {
@@ -81,8 +85,10 @@ export default function App() {
   const handleShowStep3 = () => {
     if (!selectedTheme) return
     setStep3Visible(true)
+    setArticleTitle('')
     setArticleText('')
     setArticleError('')
+    setImageKeywords(keywords.join(', '))
     setImageUrls([])
     setImageError('')
     // 少し後にスクロール
@@ -96,6 +102,7 @@ export default function App() {
     if (!selectedTheme) return
     setArticleLoading(true)
     setArticleError('')
+    setArticleTitle('')
     setArticleText('')
     try {
       const result = await generateArticle(
@@ -107,7 +114,14 @@ export default function App() {
         (partial) => setArticleText(partial),
       )
       // 完了後にフッターを付与
-      setArticleText(result + (footer ? '\n\n' + footer : ''))
+      const fullText = result + (footer ? '\n\n' + footer : '')
+      setArticleText(fullText)
+      // タイトルを非同期で生成（記事表示をブロックしない）
+      setTitleLoading(true)
+      generateTitle(selectedTheme, result, apiKey)
+        .then((title) => setArticleTitle(title))
+        .catch(() => {})
+        .finally(() => setTitleLoading(false))
     } catch (e) {
       setArticleError(e.message || '記事生成に失敗しました')
     } finally {
@@ -123,7 +137,7 @@ export default function App() {
     setImageUrls([])
     try {
       // Claude でテーマ＋キーワードから具体的な英語プロンプトを生成
-      const prompt = await generateImagePrompt(selectedTheme, keywords, apiKey)
+      const prompt = await generateImagePrompt(selectedTheme, imageKeywords, apiKey)
       // fal.ai で4枚生成
       const urls = await generateImages(prompt, falApiKey)
       setImageUrls(urls)
@@ -135,8 +149,9 @@ export default function App() {
   }
 
   const handleCopy = async () => {
+    const text = articleTitle ? `${articleTitle}\n\n${articleText}` : articleText
     try {
-      await navigator.clipboard.writeText(articleText)
+      await navigator.clipboard.writeText(text)
       showToast('コピーしました ✓')
     } catch {
       showToast('コピーに失敗しました')
@@ -186,6 +201,7 @@ export default function App() {
             onSelect={(theme) => {
               setSelectedTheme(theme)
               setStep3Visible(false)
+              setArticleTitle('')
               setArticleText('')
               setArticleError('')
               setImageUrls([])
@@ -199,6 +215,9 @@ export default function App() {
         {step3Visible && (
           <div id="step3">
             <ArticleOutput
+              articleTitle={articleTitle}
+              onTitleChange={(t) => setArticleTitle(t)}
+              titleLoading={titleLoading}
               article={articleText}
               onArticleChange={(text) => setArticleText(text)}
               loading={articleLoading}
@@ -211,6 +230,8 @@ export default function App() {
               setIsCustom={setIsCustom}
               onGenerate={handleGenerateArticle}
               onCopy={handleCopy}
+              imageKeywords={imageKeywords}
+              onImageKeywordsChange={(v) => setImageKeywords(v)}
               imageUrls={imageUrls}
               imageLoading={imageLoading}
               imageError={imageError}

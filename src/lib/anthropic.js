@@ -56,7 +56,38 @@ export async function generateThemes(keywords, tone, apiKey) {
   return parseThemeJSON(data.content[0].text)
 }
 
-export async function generateImagePrompt(theme, keywords, apiKey) {
+export async function generateTitle(theme, articleBody, apiKey) {
+  if (!apiKey) throw new Error('APIキーが設定されていません。')
+
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: getHeaders(apiKey),
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 80,
+      messages: [
+        {
+          role: 'user',
+          content: `以下のブログ記事に最適なタイトルを1つだけ考えてください。
+テーマ: ${theme.title}
+記事冒頭: ${articleBody.slice(0, 400)}
+
+タイトルのみ出力（カギカッコ・引用符不要）:`,
+        },
+      ],
+    }),
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error?.message || `APIエラー: ${res.status}`)
+  }
+
+  const data = await res.json()
+  return data.content[0].text.trim()
+}
+
+export async function generateImagePrompt(theme, imageKeywords, apiKey) {
   if (!apiKey) throw new Error('APIキーが設定されていません。')
 
   const res = await fetch(API_URL, {
@@ -73,7 +104,7 @@ Create a vivid, specific English prompt for a blog featured image.
 
 Blog theme: ${theme.title}
 Description: ${theme.description}
-Keywords: ${keywords.join(', ')}
+Keywords: ${imageKeywords}
 
 Rules:
 - English only

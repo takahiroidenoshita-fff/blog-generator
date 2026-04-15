@@ -1,6 +1,9 @@
 const WORD_COUNT_OPTIONS = [300, 500, 800, 1200]
 
 export default function ArticleOutput({
+  articleTitle,
+  onTitleChange,
+  titleLoading,
   article,
   onArticleChange,
   loading,
@@ -13,6 +16,8 @@ export default function ArticleOutput({
   setIsCustom,
   onGenerate,
   onCopy,
+  imageKeywords,
+  onImageKeywordsChange,
   imageUrls,
   imageLoading,
   imageError,
@@ -98,6 +103,26 @@ export default function ArticleOutput({
         <p className="text-red-600 text-sm mb-3 bg-red-50 rounded-lg px-3 py-2">{error}</p>
       )}
 
+      {/* タイトル */}
+      {(articleTitle || titleLoading) && (
+        <div className="mb-3">
+          <label className="block text-xs font-semibold text-gray-500 mb-1">タイトル</label>
+          {titleLoading && !articleTitle ? (
+            <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl">
+              <span className="inline-block w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm text-gray-400">タイトル生成中…</span>
+            </div>
+          ) : (
+            <input
+              type="text"
+              value={articleTitle}
+              onChange={(e) => onTitleChange(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-800 font-semibold text-base focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-gray-50"
+            />
+          )}
+        </div>
+      )}
+
       {/* 生成結果 */}
       {(article || loading) && (
         <>
@@ -126,6 +151,22 @@ export default function ArticleOutput({
       {!loading && article && hasFalKey && (
         <div className="mt-5 border-t border-gray-100 pt-5">
           <h4 className="text-sm font-semibold text-gray-700 mb-3">アイキャッチ画像</h4>
+
+          {/* 画像キーワード入力 */}
+          <div className="mb-3">
+            <label className="block text-xs font-semibold text-gray-500 mb-1">
+              画像キーワード
+              <span className="ml-1 font-normal text-gray-400">（カンマ区切りで編集可）</span>
+            </label>
+            <input
+              type="text"
+              value={imageKeywords}
+              onChange={(e) => onImageKeywordsChange(e.target.value)}
+              placeholder="例: 筋トレ, ダイエット, モチベーション"
+              className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
+            />
+          </div>
+
           <button
             onClick={onGenerateImage}
             disabled={imageLoading}
